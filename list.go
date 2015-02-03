@@ -15,7 +15,7 @@ import (
 
 const debug = true
 
-const sectoken = "aer4ga68r4g86as4d8ga6s4g8a6r4ga5ds4210"
+var sectoken string = "aer4ga68r4g86as4d8ga6s4g8a6r4ga5ds4210"
 
 var url string = "localhost:8080"
 
@@ -262,6 +262,9 @@ func download(file_id string) {
 func main() {
 	if len(os.Args) >= 2 {
 		url = os.Args[1]
+	}
+	if len(os.Args) >= 3 {
+		sectoken = os.Args[2]
 	}
 
 	for {
