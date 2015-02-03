@@ -15,6 +15,8 @@ import (
 
 const debug = true
 
+const sectoken = "aer4ga68r4g86as4d8ga6s4g8a6r4ga5ds4210"
+
 var url string = "localhost:8080"
 
 func here(file_id string) string {
@@ -85,7 +87,7 @@ func upload(file_id string) {
 	}
 
 	postfile := file_id + ".txt"
-	posturl := "http://" + url + "/u/" + file_id
+	posturl := "http://" + url + "/u/" + sectoken + file_id
 
 	//	postfile = "../file"
 
