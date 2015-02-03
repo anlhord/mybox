@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const debug = true
+
 var url string = "localhost:8080"
 
 func here(file_id string) string {
@@ -25,6 +27,22 @@ func filepath(file_id string) string {
 	return "code/" + file_id + ".go"
 }
 
+var beancounter int = 0
+
+func killer(n int) {
+	time.Sleep(time.Second * 2)
+
+	if n == beancounter {
+		exec.Command("killall", "go1").Run()
+		exec.Command("killall", "gccgo").Run()
+	}
+}
+
+func killhere(file_id string) {
+	// kill the binary file
+	os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+}
+
 func build(file_id string) bool {
 	var buf bytes.Buffer
 
@@ -34,12 +52,15 @@ func build(file_id string) bool {
 	cmd.Stderr = fer
 	cmd.Stdout = fer
 
+	go killer(beancounter)
+
 	err := cmd.Run()
+
+	beancounter++
+
 	if err != nil {
 		fmt.Println(err)
-
-		// kill the binary file
-		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+		killhere(file_id)
 
 		type Json struct {
 			Errors string
@@ -59,7 +80,9 @@ func build(file_id string) bool {
 }
 
 func upload(file_id string) {
-	fmt.Println("UPLOADING\n")
+	if debug {
+		fmt.Println("UPLOADING\n")
+	}
 
 	postfile := file_id + ".txt"
 	posturl := "http://" + url + "/u/" + file_id
@@ -93,8 +116,9 @@ func errorf(file_id, erro string, json bool) {
 }
 
 func compile(file_id string) {
-	fmt.Println("compiling:", file_id)
-
+	if debug {
+		fmt.Println("compiling:", file_id)
+	}
 	err := os.Chdir("code/")
 	if err != nil {
 		fmt.Println(err)
@@ -107,6 +131,7 @@ func compile(file_id string) {
 		} else if xec(file_id) {
 			upload(file_id)
 		}
+		killhere(file_id + ".txt")
 	} else {
 		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
 		errorf(file_id, "Import is banned. Use print().", false)
@@ -169,7 +194,9 @@ func filter(file_id string) bool {
 				//				fmt.Println("(banned char %s %s)", c, ban)
 
 				if c == 't' && ban == 'i' {
-					fmt.Println("FOUND IMPORT")
+					if debug {
+						fmt.Println("FOUND IMPORT")
+					}
 					return false
 				}
 			} else {
@@ -205,6 +232,8 @@ func xec(file_id string) bool {
 	}
 	file.Write([]byte(`","Kind":"stdout","Delay":0}]}` + "\n\n"))
 	file.Close()
+
+	killhere(file_id)
 	return true
 }
 
