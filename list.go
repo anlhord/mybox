@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-//	"io/ioutil"
+	//	"io/ioutil"
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
-	"bufio"
 	"os"
-	"time"
 	"os/exec"
+	"time"
 )
 
 var url string = "localhost:8080"
@@ -23,38 +25,70 @@ func filepath(file_id string) string {
 	return "code/" + file_id + ".go"
 }
 
-func build(file_id string) {
-	err := exec.Command("go", "build", "-compiler", "gccgo", here(file_id)).Run()
+func build(file_id string) bool {
+	var buf bytes.Buffer
+
+	fer := &buf
+
+	cmd := exec.Command("go", "build", "-compiler", "gccgo", here(file_id))
+	cmd.Stderr = fer
+	cmd.Stdout = fer
+
+	err := cmd.Run()
 	if err != nil {
-		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
 		fmt.Println(err)
+
+		// kill the binary file
+		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+
+		type Json struct {
+			Errors string
+		}
+		j := Json{Errors: string(fer.Bytes())}
+
+		xxx, err := json.Marshal(j)
+		if err != nil {
+			fmt.Println(err)
+			return false
+		}
+		errorf(file_id, string(xxx), true)
+		return true
 	}
+
+	return false
 }
 
 func upload(file_id string) {
 	fmt.Println("UPLOADING\n")
 
 	postfile := file_id + ".txt"
-	posturl := "http://"+url+"/u/" + file_id
+	posturl := "http://" + url + "/u/" + file_id
 
-//	postfile = "../file"
+	//	postfile = "../file"
 
-	err := exec.Command("wget",`--header="Content-type: application/x-www-form-urlencoded"`,"--post-file",postfile,posturl,"-O","-").Run()
+	err := exec.Command("wget", `--header="Content-type: application/x-www-form-urlencoded"`, "--post-file", postfile, posturl, "-O", "-").Run()
 	if err != nil {
 		fmt.Println(err)
 	}
 
 }
 
-func errorf(file_id,erro string) {
+const lerr = `{"Errors":"`
+const rerr = `","Events":[{"Message":"","Kind":"stdout","Delay":0}]}`
+
+func errorf(file_id, erro string, json bool) {
 	file, err := os.Create(file_id + ".txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	file.Write([]byte(`{"Errors":"`))
+	if !json {
+		file.Write([]byte(lerr))
+	}
 	file.Write([]byte(erro))
-	file.Write([]byte(`","Events":[{"Message":"","Kind":"stdout","Delay":0}]}`))
+	if !json {
+		file.Write([]byte(rerr))
+	}
 	file.Close()
 }
 
@@ -68,13 +102,14 @@ func compile(file_id string) {
 	}
 
 	if filter(file_id) {
-		build(file_id)
-		if xec(file_id) {
+		if build(file_id) {
+			upload(file_id)
+		} else if xec(file_id) {
 			upload(file_id)
 		}
 	} else {
 		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
-		errorf(file_id, "Import is banned. Use print().")
+		errorf(file_id, "Import is banned. Use print().", false)
 		upload(file_id)
 	}
 
@@ -85,13 +120,20 @@ func compile(file_id string) {
 }
 func next(ban byte) byte {
 	switch ban {
-	case 'i': return 'm';
-	case 'm': return 'p';
-	case 'p': return 'o';
-	case 'o': return 'r';
-	case 'r': return 't';
-	case 't': return 'i';
-	default : return 'i';
+	case 'i':
+		return 'm'
+	case 'm':
+		return 'p'
+	case 'p':
+		return 'o'
+	case 'o':
+		return 'r'
+	case 'r':
+		return 't'
+	case 't':
+		return 'i'
+	default:
+		return 'i'
 	}
 }
 
@@ -109,33 +151,29 @@ func filter(file_id string) bool {
 	for count != 0 {
 		count, err = f.Read(data)
 		if err == io.EOF {
-//			fmt.Println("FOUND EOF")
+			//			fmt.Println("FOUND EOF")
 			return true
 		}
 		if err != nil {
 			fmt.Println(err)
 			return false
 		}
-//		fmt.Printf("%s", data[:count])
-
-		
+		//		fmt.Printf("%s", data[:count])
 
 		for _, c := range data[:count] {
-//			fmt.Println("(expect %s)", ban)
+			//			fmt.Println("(expect %s)", ban)
 			if c == ban {
-
-
 
 				ban = next(ban)
 
-//				fmt.Println("(banned char %s %s)", c, ban)
+				//				fmt.Println("(banned char %s %s)", c, ban)
 
 				if c == 't' && ban == 'i' {
 					fmt.Println("FOUND IMPORT")
 					return false
 				}
 			} else {
-//				fmt.Println("(normal %s %s)", c, ban)
+				//				fmt.Println("(normal %s %s)", c, ban)
 
 				ban = next(0)
 			}
@@ -153,7 +191,6 @@ func xec(file_id string) bool {
 	}
 	file.Write([]byte(`{"Errors":"","Events":[{"Message":"`))
 
-
 	cmd := exec.Command("./" + file_id)
 	cmd.Stdout = file
 	cmd.Stderr = file
@@ -166,7 +203,7 @@ func xec(file_id string) bool {
 	if err != nil {
 		fmt.Println(err)
 	}
-	file.Write([]byte(`","Kind":"stdout","Delay":0}]}`+"\n\n"))
+	file.Write([]byte(`","Kind":"stdout","Delay":0}]}` + "\n\n"))
 	file.Close()
 	return true
 }
@@ -225,4 +262,3 @@ func main() {
 		time.Sleep(time.Second)
 	}
 }
-
