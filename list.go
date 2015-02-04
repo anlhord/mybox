@@ -129,12 +129,16 @@ func compile(file_id string) {
 
 	if filter(file_id) {
 		if build(file_id) {
+			mapa[file_id] += "[GCCERR]"
 			upload(file_id)
 		} else if xec(file_id) {
+			mapa[file_id] += "[OK]"
 			upload(file_id)
 		}
 		killhere(file_id + ".txt")
 	} else {
+		mapa[file_id] += "[KILL-IMPORT]"
+
 		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
 		errorf(file_id, "Import is banned. Use print().", false)
 		upload(file_id)
@@ -259,7 +263,11 @@ func download(file_id string) {
 	file.Close()
 }
 
+var mapa map[string]string
+
 func init() {
+	mapa = make(map[string]string)
+
 	http.HandleFunc("/", job)
 }
 func job(w http.ResponseWriter, req *http.Request) {
@@ -268,6 +276,7 @@ func job(w http.ResponseWriter, req *http.Request) {
 		fmt.Println("Have job id", id)
 	}
 	serve(id)
+	fmt.Fprintln(w, mapa)
 }
 
 
@@ -276,15 +285,18 @@ func serve(file_id string) {
                         bin_name := binpath(file_id)
                         _, err := os.Lstat(file_name)
                         if err != nil {
+				mapa[file_id] += "[NOGO:" + err.Error() + "]"
                                 download(file_id)
                         }
 
                         _, err = os.Lstat(bin_name)
                         if err != nil {
+				mapa[file_id] += "[NOBIN:" + err.Error() + "]"
                                 compile(file_id)
                         }
                         _, err = os.Lstat(bin_name)
                         if err != nil {
+				mapa[file_id] += "[NOBULD:" + err.Error() + "]"
                                 fmt.Println("Not compiled:", bin_name)
                         }
 
