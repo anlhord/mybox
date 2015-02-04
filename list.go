@@ -259,6 +259,37 @@ func download(file_id string) {
 	file.Close()
 }
 
+func init() {
+	http.HandleFunc("/", job)
+}
+func job(w http.ResponseWriter, req *http.Request) {
+	var id string = req.URL.Path[1:]
+	if debug {
+		fmt.Println("Have job id", id)
+	}
+	serve(id)
+}
+
+
+func serve(file_id string) {
+                        file_name := filepath(file_id)
+                        bin_name := binpath(file_id)
+                        _, err := os.Lstat(file_name)
+                        if err != nil {
+                                download(file_id)
+                        }
+
+                        _, err = os.Lstat(bin_name)
+                        if err != nil {
+                                compile(file_id)
+                        }
+                        _, err = os.Lstat(bin_name)
+                        if err != nil {
+                                fmt.Println("Not compiled:", bin_name)
+                        }
+
+}
+
 func main() {
 	if len(os.Args) >= 2 {
 		url = os.Args[1]
@@ -267,7 +298,7 @@ func main() {
 		sectoken = os.Args[2]
 	}
 
-	for {
+
 		res, err := http.Get("http://" + url + "/list")
 		if err != nil {
 			fmt.Println(err)
@@ -275,24 +306,12 @@ func main() {
 		scanner := bufio.NewScanner(res.Body)
 		for scanner.Scan() {
 			file_id := scanner.Text()
-			file_name := filepath(file_id)
-			bin_name := binpath(file_id)
-			_, err := os.Lstat(file_name)
-			if err != nil {
-				download(file_id)
-			}
-
-			_, err = os.Lstat(bin_name)
-			if err != nil {
-				compile(file_id)
-			}
-			_, err = os.Lstat(bin_name)
-			if err != nil {
-				fmt.Println("Not compiled:", bin_name)
-			}
+			serve(file_id)
 		}
 		res.Body.Close()
 
 		time.Sleep(time.Second)
-	}
+
+	http.ListenAndServe(":12345", nil)
+
 }
