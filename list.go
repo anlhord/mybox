@@ -48,7 +48,7 @@ func build(file_id string) bool {
 
 	fer := &buf
 
-	cmd := exec.Command("/opt/gccgo/bin/gccgo", here(file_id), "-static-libgo","-o",file_id)
+	cmd := exec.Command("/opt/gccgo/bin/gccgo", here(file_id), "-static-libgo", "-o", file_id)
 	cmd.Stderr = fer
 	cmd.Stdout = fer
 
@@ -86,9 +86,8 @@ func upload(file_id string) {
 	posturl := "http://" + url + "/u/" + sectoken + file_id
 
 	if debug {
-		fmt.Println("UPLOADING TO ",posturl)
+		fmt.Println("UPLOADING TO ", posturl)
 	}
-
 
 	err := exec.Command("wget", `--header="Content-type: application/x-www-form-urlencoded"`, "--post-file", postfile, posturl, "-O", "-").Run()
 	if err != nil {
@@ -278,26 +277,25 @@ func job(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(w, mapa)
 }
 
-
 func serve(file_id string) {
-                        file_name := filepath(file_id)
-                        bin_name := binpath(file_id)
-                        _, err := os.Lstat(file_name)
-                        if err != nil {
-				mapa[file_id] += "[NOGO:" + err.Error() + "]"
-                                download(file_id)
-                        }
+	file_name := filepath(file_id)
+	bin_name := binpath(file_id)
+	_, err := os.Lstat(file_name)
+	if err != nil {
+		mapa[file_id] += "[NOGO:" + err.Error() + "]"
+		download(file_id)
+	}
 
-                        _, err = os.Lstat(bin_name)
-                        if err != nil {
-				mapa[file_id] += "[NOBIN:" + err.Error() + "]"
-                                compile(file_id)
-                        }
-                        _, err = os.Lstat(bin_name)
-                        if err != nil {
-				mapa[file_id] += "[NOBULD:" + err.Error() + "]"
-                                fmt.Println("Not compiled:", bin_name)
-                        }
+	_, err = os.Lstat(bin_name)
+	if err != nil {
+		mapa[file_id] += "[NOBIN:" + err.Error() + "]"
+		compile(file_id)
+	}
+	_, err = os.Lstat(bin_name)
+	if err != nil {
+		mapa[file_id] += "[NOBULD:" + err.Error() + "]"
+		fmt.Println("Not compiled:", bin_name)
+	}
 
 }
 
@@ -309,19 +307,18 @@ func main() {
 		sectoken = os.Args[2]
 	}
 
+	res, err := http.Get("http://" + url + "/list")
+	if err != nil {
+		fmt.Println(err)
+	}
+	scanner := bufio.NewScanner(res.Body)
+	for scanner.Scan() {
+		file_id := scanner.Text()
+		serve(file_id)
+	}
+	res.Body.Close()
 
-		res, err := http.Get("http://" + url + "/list")
-		if err != nil {
-			fmt.Println(err)
-		}
-		scanner := bufio.NewScanner(res.Body)
-		for scanner.Scan() {
-			file_id := scanner.Text()
-			serve(file_id)
-		}
-		res.Body.Close()
-
-		time.Sleep(time.Second)
+	time.Sleep(time.Second)
 
 	http.ListenAndServe(":12345", nil)
 
