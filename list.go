@@ -15,8 +15,6 @@ import (
 
 const debug = true
 
-var sectoken string = "aer4ga68r4g86as4d8ga6s4g8a6r4ga5ds4210"
-
 var url string = "localhost:8080"
 
 func here(file_id string) string {
@@ -42,7 +40,7 @@ func killer(n int) {
 
 func killhere(file_id string) {
 	// kill the binary file
-	os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+	//	os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
 }
 
 func build(file_id string) bool {
@@ -50,7 +48,7 @@ func build(file_id string) bool {
 
 	fer := &buf
 
-	cmd := exec.Command("go", "build", "-compiler", "gccgo", here(file_id))
+	cmd := exec.Command("/opt/gccgo/bin/gccgo", here(file_id), "-static-libgo","-o",file_id)
 	cmd.Stderr = fer
 	cmd.Stdout = fer
 
@@ -61,6 +59,7 @@ func build(file_id string) bool {
 	beancounter++
 
 	if err != nil {
+		mapa[file_id] += "[RUNERR:" + err.Error() + "]"
 		fmt.Println(err)
 		killhere(file_id)
 
@@ -82,14 +81,14 @@ func build(file_id string) bool {
 }
 
 func upload(file_id string) {
-	if debug {
-		fmt.Println("UPLOADING\n")
-	}
 
 	postfile := file_id + ".txt"
 	posturl := "http://" + url + "/u/" + sectoken + file_id
 
-	//	postfile = "../file"
+	if debug {
+		fmt.Println("UPLOADING TO ",posturl)
+	}
+
 
 	err := exec.Command("wget", `--header="Content-type: application/x-www-form-urlencoded"`, "--post-file", postfile, posturl, "-O", "-").Run()
 	if err != nil {
