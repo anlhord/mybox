@@ -263,7 +263,7 @@ func filter(file_id string) bool {
 }
 
 func xec(file_id string) bool {
-	file, err := os.Create(file_id + ".txt")
+	file, err := os.Create(file_id + ".t.txt")
 	if err != nil {
 		fmt.Println(err)
 		return false
@@ -297,6 +297,20 @@ func xec(file_id string) bool {
 
 
 	killhere(file_id)
+
+       file, err = os.Create(file_id + ".txt")
+       if err != nil {
+               fmt.Println(err)
+               return false
+       }
+
+       cmd = exec.Command("sh","-c","tr -d '\\n' < " + file_id + ".t.txt")
+       cmd.Stdout = file
+       cmd.Run()
+       file.Close()
+
+	killhere(file_id + ".t.txt")
+
 	return true
 }
 
