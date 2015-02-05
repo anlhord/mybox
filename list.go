@@ -15,6 +15,7 @@ import (
 
 const debug = true
 
+var sectoken string
 var url string = "localhost:8080"
 
 func here(file_id string) string {
