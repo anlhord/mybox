@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const debug = false
+const debug = true
 
 var sectoken string
 var url string = "localhost:8080"
@@ -30,6 +30,20 @@ func filepath(file_id string) string {
 
 var beancounter int = 0
 
+func killer2(n int, p *os.Process, e *error) {
+        time.Sleep(time.Second * 4)
+
+	*e = nil
+        if n == beancounter {
+	*e = fmt.Errorf("Timeout expired")
+        if debug {
+                fmt.Println("Expire killer")
+        }
+
+	*e = p.Kill()
+}
+}
+
 func killer(n int) {
 	time.Sleep(time.Second * 2)
 
@@ -42,11 +56,11 @@ func killer(n int) {
 		err1 := exec.Command("killall", "go1").Run()
 		err2 := exec.Command("killall", "gccgo").Run()
 		if err1 != nil {
-			panic(err1)
+			print(err1)
 		}
 
 		if err2 != nil {
-			panic(err2)
+			print(err2)
 		}
 	}
 }
@@ -156,6 +170,12 @@ func compile(file_id string) {
 		} else if xec(file_id) {
 			mapa[file_id] += "[OK]"
 			upload(file_id)
+		} else {
+                        mapa[file_id] += "[TIMEOUT]"
+	                os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+        	        errorf(file_id, "Task expired 4 seconds.", false)
+                	upload(file_id)
+
 		}
 		killhere(file_id + ".txt")
 	} else {
@@ -258,12 +278,23 @@ func xec(file_id string) bool {
 	if err != nil {
 		fmt.Println(err)
 	}
+	var err2 error
+	go killer2(beancounter, cmd.Process, &err2)
+
 	err = cmd.Wait()
+	beancounter++
+
 	if err != nil {
 		fmt.Println(err)
 	}
 	file.Write([]byte(`","Kind":"stdout","Delay":0}]}` + "\n\n"))
 	file.Close()
+
+        if err2 != nil {
+                fmt.Println("Proc expired")
+                return false
+        }
+
 
 	killhere(file_id)
 	return true
