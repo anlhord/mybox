@@ -365,7 +365,7 @@ func main() {
 	if len(os.Args) >= 3 {
 		sectoken = os.Args[2]
 	}
-
+/*
 	res, err := http.Get("http://" + url + "/list")
 	if err != nil {
 		fmt.Println(err)
@@ -378,7 +378,7 @@ func main() {
 	res.Body.Close()
 
 	time.Sleep(time.Second)
-
+*/
 	http.ListenAndServe(":12345", nil)
 
 }
