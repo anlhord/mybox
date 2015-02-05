@@ -34,14 +34,28 @@ func killer(n int) {
 	time.Sleep(time.Second * 2)
 
 	if n == beancounter {
-		exec.Command("killall", "go1").Run()
-		exec.Command("killall", "gccgo").Run()
+
+        if debug {
+                fmt.Println("Expire killer")
+        }
+
+		err1 := exec.Command("killall", "go1").Run()
+		err2 := exec.Command("killall", "gccgo").Run()
+		if err1 != nil {
+			panic(err1)
+		}
+
+		if err2 != nil {
+			panic(err2)
+		}
 	}
 }
 
 func killhere(file_id string) {
+	if !debug {
 	// kill the binary file
-	//	os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+	}
 }
 
 func build(file_id string) bool {
@@ -53,11 +67,20 @@ func build(file_id string) bool {
 	cmd.Stderr = fer
 	cmd.Stdout = fer
 
+	if debug {
+		fmt.Println("GO GO GO")
+	}
+
 	go killer(beancounter)
 
 	err := cmd.Run()
 
 	beancounter++
+
+        if debug {
+                fmt.Println("KILLED OK")
+        }
+
 
 	if err != nil {
 		mapa[file_id] += "[RUNERR:" + err.Error() + "]"
@@ -118,7 +141,7 @@ func errorf(file_id, erro string, json bool) {
 
 func compile(file_id string) {
 	if debug {
-		fmt.Println("compiling:", file_id)
+		fmt.Println("compiling:", file_id, " cdcode")
 	}
 	err := os.Chdir("code/")
 	if err != nil {
@@ -142,6 +165,10 @@ func compile(file_id string) {
 		errorf(file_id, "Import is banned. Use print().", false)
 		upload(file_id)
 	}
+
+        if debug {
+                fmt.Println("cd..")
+        }
 
 	err = os.Chdir("..")
 	if err != nil {
