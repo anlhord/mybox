@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const debug = true
+const debug = false
 
 var sectoken string
 var url string = "localhost:8080"
