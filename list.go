@@ -304,7 +304,7 @@ func xec(file_id string) bool {
                return false
        }
 
-       cmd = exec.Command("sh","-c","tr -d '\\n' < " + file_id + ".t.txt")
+       cmd = exec.Command("sh","-c","tr -s '\\n\\r' 'Z' < " + file_id + ".t.txt")
        cmd.Stdout = file
        cmd.Run()
        file.Close()
