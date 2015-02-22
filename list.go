@@ -31,17 +31,17 @@ func filepath(file_id string) string {
 var beancounter int = 0
 
 func killer2(n int, p *os.Process, e *error) {
-        time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 4)
 
 	*e = nil
-        if n == beancounter {
-	*e = fmt.Errorf("Timeout expired")
-        if debug {
-                fmt.Println("Expire killer")
-        }
+	if n == beancounter {
+		*e = fmt.Errorf("Timeout expired")
+		if debug {
+			fmt.Println("Expire killer")
+		}
 
-	*e = p.Kill()
-}
+		*e = p.Kill()
+	}
 }
 
 func killer(n int) {
@@ -49,9 +49,9 @@ func killer(n int) {
 
 	if n == beancounter {
 
-        if debug {
-                fmt.Println("Expire killer")
-        }
+		if debug {
+			fmt.Println("Expire killer")
+		}
 
 		err1 := exec.Command("killall", "go1").Run()
 		err2 := exec.Command("killall", "gccgo").Run()
@@ -66,10 +66,11 @@ func killer(n int) {
 }
 
 func killhere(file_id string) {
-	if !debug {
+	//	if !debug {
 	// kill the binary file
-		os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
-	}
+	f, _ := os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+	f.Close()
+	//	}
 }
 
 func build(file_id string) bool {
@@ -91,10 +92,9 @@ func build(file_id string) bool {
 
 	beancounter++
 
-        if debug {
-                fmt.Println("KILLED OK")
-        }
-
+	if debug {
+		fmt.Println("KILLED OK")
+	}
 
 	if err != nil {
 		mapa[file_id] += "[RUNERR:" + err.Error() + "]"
@@ -171,10 +171,10 @@ func compile(file_id string) {
 			mapa[file_id] += "[OK]"
 			upload(file_id)
 		} else {
-                        mapa[file_id] += "[TIMEOUT]"
-	                os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
-        	        errorf(file_id, "Task expired 4 seconds.", false)
-                	upload(file_id)
+			mapa[file_id] += "[TIMEOUT]"
+			os.OpenFile(file_id, os.O_CREATE|os.O_TRUNC, 0666)
+			errorf(file_id, "Task expired 4 seconds.", false)
+			upload(file_id)
 
 		}
 		killhere(file_id + ".txt")
@@ -186,9 +186,9 @@ func compile(file_id string) {
 		upload(file_id)
 	}
 
-        if debug {
-                fmt.Println("cd..")
-        }
+	if debug {
+		fmt.Println("cd..")
+	}
 
 	err = os.Chdir("..")
 	if err != nil {
@@ -287,27 +287,26 @@ func xec(file_id string) bool {
 	if err != nil {
 		fmt.Println(err)
 	}
-	file.Write([]byte(`","Kind":"stdout","Delay":0}]}` + "\n\n"))
+	file.Write([]byte(`","Kind":"stdout","Delay":0}]}`))
 	file.Close()
 
-        if err2 != nil {
-                fmt.Println("Proc expired")
-                return false
-        }
-
+	if err2 != nil {
+		fmt.Println("Proc expired")
+		return false
+	}
 
 	killhere(file_id)
 
-       file, err = os.Create(file_id + ".txt")
-       if err != nil {
-               fmt.Println(err)
-               return false
-       }
+	file, err = os.Create(file_id + ".txt")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
 
-       cmd = exec.Command("sh","-c","tr -s '\\n\\r' 'Z' < " + file_id + ".t.txt")
-       cmd.Stdout = file
-       cmd.Run()
-       file.Close()
+	cmd = exec.Command("sh", "-c", "tr -s '\\n\\r' ' ' < "+file_id+".t.txt")
+	cmd.Stdout = file
+	cmd.Run()
+	file.Close()
 
 	killhere(file_id + ".t.txt")
 
@@ -379,20 +378,20 @@ func main() {
 	if len(os.Args) >= 3 {
 		sectoken = os.Args[2]
 	}
-/*
-	res, err := http.Get("http://" + url + "/list")
-	if err != nil {
-		fmt.Println(err)
-	}
-	scanner := bufio.NewScanner(res.Body)
-	for scanner.Scan() {
-		file_id := scanner.Text()
-		serve(file_id)
-	}
-	res.Body.Close()
+	/*
+		res, err := http.Get("http://" + url + "/list")
+		if err != nil {
+			fmt.Println(err)
+		}
+		scanner := bufio.NewScanner(res.Body)
+		for scanner.Scan() {
+			file_id := scanner.Text()
+			serve(file_id)
+		}
+		res.Body.Close()
 
-	time.Sleep(time.Second)
-*/
+		time.Sleep(time.Second)
+	*/
 	http.ListenAndServe(":12345", nil)
 
 }
